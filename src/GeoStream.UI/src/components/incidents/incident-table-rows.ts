@@ -28,10 +28,11 @@ export class IncidentTableRows {
 
   public getStateProgress(state: string): number {
     const stateMap: Record<string, number> = {
-      'Detected': 20,
-      'Validated': 40,
-      'Mitigating': 60,
-      'Monitoring': 80,
+      'Detected': 16,
+      'Acknowledged': 32,
+      'Validated': 48,
+      'Mitigating': 68,
+      'Monitoring': 84,
       'Resolved': 100
     };
     return stateMap[state] || 0;
@@ -88,12 +89,12 @@ export class IncidentTableRows {
     return `${diffDays}d ago`;
   }
 
-  public canValidate(incident: IncidentSummary): boolean {
-    return incident.state === 'Detected' && incident.assignedResponderId != null;
+  public canBeginMitigation(incident: IncidentSummary): boolean {
+    return incident.state === 'Validated';
   }
 
-  public canBeginMitigation(incident: IncidentSummary): boolean {
-    return incident.state === 'Validated' && incident.assignedResponderId != null;
+  public canValidate(incident: IncidentSummary): boolean {
+    return incident.state === 'Detected' || incident.state === 'Acknowledged';
   }
 
   public canBeginMonitoring(incident: IncidentSummary): boolean {

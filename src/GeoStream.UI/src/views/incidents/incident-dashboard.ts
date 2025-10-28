@@ -164,7 +164,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
                       (severityOrder[b.severity as keyof typeof severityOrder] || 0);
           break;
         case 'state':
-          const stateOrder = { 'Detected': 1, 'Validated': 2, 'Mitigating': 3, 'Monitoring': 4, 'Resolved': 5 };
+          const stateOrder = { 'Detected': 1, 'Acknowledged': 2, 'Validated': 3, 'Mitigating': 4, 'Monitoring': 5, 'Resolved': 6 };
           comparison = (stateOrder[a.state as keyof typeof stateOrder] || 0) - 
                       (stateOrder[b.state as keyof typeof stateOrder] || 0);
           break;
@@ -197,13 +197,11 @@ export class IncidentDashboard implements ICustomElementViewModel {
     return incident.state !== 'Resolved';
   }
 
-  public handleMapClick(event: { lat: number; lng: number }): void {
+  public handleMapClick = (event: { lat: number; lng: number }): void => {
     // Set the coordinates for the new incident
-    if (this.newIncident) {
-      this.newIncident.latitude = event.lat;
-      this.newIncident.longitude = event.lng;
-    }
-    
+    this.newIncident.latitude = event.lat;
+    this.newIncident.longitude = event.lng;
+
     // Show create modal
     this.showCreateModal = true;
   }
@@ -258,7 +256,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     };
   }
 
-  public assignResponder(incident: IncidentSummary): void {
+  public assignResponder = (incident: IncidentSummary): void => {
     this.assigningIncident = incident;
     this.selectedResponderId = 'RESP-001';
     this.showAssignModal = true;
@@ -267,7 +265,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
   public async confirmAssignResponder(): Promise<void> {
     if (!this.assigningIncident) return;
 
-    await this.advanceIncident(this.assigningIncident.id, 'Validate', this.selectedResponderId);
+    await this.advanceIncident(this.assigningIncident.id, 'AssignResponder', this.selectedResponderId);
     this.closeAssignModal();
   }
 
@@ -277,7 +275,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     this.selectedResponderId = 'RESP-001';
   }
 
-  public openSeverityModal(incident: IncidentSummary): void {
+  public openSeverityModal = (incident: IncidentSummary): void => {
     this.changingSeverityIncident = incident;
     this.newSeverity = incident.severity;
     this.showSeverityModal = true;
@@ -343,19 +341,19 @@ export class IncidentDashboard implements ICustomElementViewModel {
     }
   }
 
-  public async validateIncident(incident: IncidentSummary): Promise<void> {
+  public validateIncident = async (incident: IncidentSummary): Promise<void> => {
     await this.advanceIncident(incident.id, 'Validate', null);
   }
 
-  public async beginMitigation(incident: IncidentSummary): Promise<void> {
-    await this.advanceIncident(incident.id, 'BeginMitigation', null);
+  public beginMitigation = async (incident: IncidentSummary): Promise<void> => {
+    await this.advanceIncident(incident.id, 'BeginMitigation', incident.assignedResponderId ?? null);
   }
 
-  public async beginMonitoring(incident: IncidentSummary): Promise<void> {
+  public beginMonitoring = async (incident: IncidentSummary): Promise<void> => {
     await this.advanceIncident(incident.id, 'BeginMonitoring', null);
   }
 
-  public async resolveIncident(incident: IncidentSummary): Promise<void> {
+  public resolveIncident = async (incident: IncidentSummary): Promise<void> => {
     await this.advanceIncident(incident.id, 'Resolve', null);
   }
 
@@ -373,6 +371,9 @@ export class IncidentDashboard implements ICustomElementViewModel {
       }
 
       console.log(`Advanced incident ${incidentId} with action ${action}`);
+      
+      // Refresh the dashboard to show updated state
+      await this.refresh();
     } catch (error) {
       console.error('Failed to advance incident', error);
       alert(`Failed to ${action} incident. Check console for details.`);
@@ -389,8 +390,9 @@ export class IncidentDashboard implements ICustomElementViewModel {
     this.connection.on('incidentUpdated', (summary: any) => {
       const normalized = this.normalizeIncident(summary);
       this.upsertIncident(normalized);
-      // Refresh from backend to ensure filters are applied correctly
-      this.refresh();
+      // Apply filters and sorting
+      this.filteredIncidents = [...this.incidents];
+      this.applySort();
     });
 
     try {
@@ -403,18 +405,40 @@ export class IncidentDashboard implements ICustomElementViewModel {
   private upsertIncident(summary: IncidentSummary): void {
     const existingIndex = this.incidents.findIndex(i => i.id === summary.id);
     if (existingIndex >= 0) {
-      this.incidents = this.incidents.map((incident, index) =>
-        index === existingIndex ? summary : incident
-      );
+      this.incidents[existingIndex] = summary;
     } else {
       this.incidents = [summary, ...this.incidents];
     }
+    
+    // Update filtered incidents as well
+    const filteredIndex = this.filteredIncidents.findIndex(i => i.id === summary.id);
+    if (filteredIndex >= 0) {
+      this.filteredIncidents[filteredIndex] = summary;
+    } else if (!this.shouldFilterOut(summary)) {
+      this.filteredIncidents = [summary, ...this.filteredIncidents];
+    }
+  }
+
+  private shouldFilterOut(incident: IncidentSummary): boolean {
+    if (this.filterSeverity !== 'all' && incident.severity.toLowerCase() !== this.filterSeverity.toLowerCase()) {
+      return true;
+    }
+    if (this.filterState !== 'all' && incident.state.toLowerCase() !== this.filterState.toLowerCase()) {
+      return true;
+    }
+    if (this.filterType !== 'all' && incident.type.toLowerCase() !== this.filterType.toLowerCase()) {
+      return true;
+    }
+    if (this.searchTerm && !incident.id.toLowerCase().includes(this.searchTerm.toLowerCase())) {
+      return true;
+    }
+    return false;
   }
 
   private normalizeIncident(raw: any): IncidentSummary {
     // Convert enum numbers to strings if needed
     const severityMap = ['Low', 'Moderate', 'High', 'Critical'];
-    const stateMap = ['Detected', 'Validated', 'Mitigating', 'Monitoring', 'Resolved'];
+    const stateMap = ['Detected', 'Acknowledged', 'Validated', 'Mitigating', 'Monitoring', 'Resolved'];
     const typeMap = [
       'TrafficCongestion', 'RoadAccident', 'RoadClosure',
       'VehicleBreakdown', 'Roadwork', 'PublicTransportDelay',

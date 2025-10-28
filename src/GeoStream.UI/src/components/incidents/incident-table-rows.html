@@ -63,31 +63,31 @@
               ✏️
             </button>
             <button if.bind="incident.state === 'Detected' && !incident.assignedResponderId" 
-                    click.trigger="assign(incident)" 
+                    click.trigger="assignResponder(incident)" 
                     class="btn-action-compact btn-assign"
                     title="Assign Responder">
               👤
             </button>
             <button if.bind="canValidate(incident)" 
-                    click.trigger="validate(incident)" 
-                    class="btn-action-compact btn-validate"
-                    title="Validate">
-              ✓
+                click.trigger="validateIncident(incident)" 
+                class="btn-action-compact btn-validate"
+                title="Validate Incident">
+              ✅
             </button>
             <button if.bind="canBeginMitigation(incident)" 
-                    click.trigger="mitigate(incident)" 
+                    click.trigger="beginMitigation(incident)" 
                     class="btn-action-compact btn-mitigate"
                     title="Begin Mitigation">
               🚧
             </button>
             <button if.bind="canBeginMonitoring(incident)" 
-                    click.trigger="monitor(incident)" 
+                    click.trigger="beginMonitoring(incident)" 
                     class="btn-action-compact btn-monitor"
                     title="Begin Monitoring">
               👁️
             </button>
             <button if.bind="canResolve(incident)" 
-                    click.trigger="resolve(incident)" 
+                    click.trigger="resolveIncident(incident)" 
                     class="btn-action-compact btn-resolve"
                     title="Resolve">
               ✅

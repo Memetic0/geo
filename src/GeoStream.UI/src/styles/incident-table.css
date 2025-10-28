@@ -224,6 +224,11 @@
   color: var(--color-state-validated);
 }
 
+.state-badge.acknowledged {
+  background: var(--color-state-acknowledged-bg);
+  color: var(--color-state-acknowledged);
+}
+
 .state-badge.mitigating {
   background: var(--color-state-mitigating-bg);
   color: var(--color-state-mitigating);

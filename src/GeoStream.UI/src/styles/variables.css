@@ -52,6 +52,8 @@
   /* State Colors */
   --state-detected: #6b7280;
   --state-detected-bg: #f3f4f6;
+  --state-acknowledged: #6366f1;
+  --state-acknowledged-bg: #ede9fe;
   --state-validated: #3b82f6;
   --state-validated-bg: #dbeafe;
   --state-mitigating: #f59e0b;
@@ -64,6 +66,8 @@
   /* Also add with color- prefix for consistency */
   --color-state-detected: #6b7280;
   --color-state-detected-bg: #f3f4f6;
+  --color-state-acknowledged: #6366f1;
+  --color-state-acknowledged-bg: #ede9fe;
   --color-state-validated: #3b82f6;
   --color-state-validated-bg: #dbeafe;
   --color-state-mitigating: #f59e0b;

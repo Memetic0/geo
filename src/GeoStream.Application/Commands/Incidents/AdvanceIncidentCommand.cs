@@ -6,6 +6,7 @@ namespace GeoStream.Application.Commands.Incidents;
 
 public enum IncidentAdvanceAction
 {
+    AssignResponder,
     Validate,
     BeginMitigation,
     BeginMonitoring,
@@ -34,19 +35,30 @@ public sealed class AdvanceIncidentCommandHandler(
 
         switch (request.Action)
         {
+            case IncidentAdvanceAction.AssignResponder:
+                if (string.IsNullOrWhiteSpace(request.ResponderId))
+                {
+                    throw new ArgumentException(
+                        "Responder id is required when assigning responder.",
+                        nameof(request)
+                    );
+                }
+                incident.AssignResponder(request.ResponderId);
+                break;
             case IncidentAdvanceAction.Validate:
                 incident.Validate();
                 break;
             case IncidentAdvanceAction.BeginMitigation:
-                if (string.IsNullOrWhiteSpace(request.ResponderId))
+                var responderId = request.ResponderId ?? incident.AssignedResponderId;
+                if (string.IsNullOrWhiteSpace(responderId))
                 {
                     throw new ArgumentException(
-                        "Responder id is required when beginning mitigation.",
+                        "Responder id is required when beginning mitigation. Either assign a responder first or provide one in the request.",
                         nameof(request)
                     );
                 }
 
-                incident.BeginMitigation(request.ResponderId);
+                incident.BeginMitigation(responderId);
                 break;
             case IncidentAdvanceAction.BeginMonitoring:
                 incident.BeginMonitoring();

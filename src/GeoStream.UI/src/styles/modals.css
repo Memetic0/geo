@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-index-modal);
+  z-index: var(--z-modal);
   padding: var(--spacing-lg);
   animation: fadeIn var(--transition-base);
 }
@@ -26,7 +26,8 @@
 }
 
 /* Modal Container */
-.modal {
+.modal,
+.modal-content {
   background: var(--color-background);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-2xl);
@@ -50,7 +51,8 @@
   }
 }
 
-.modal.closing {
+.modal.closing,
+.modal-content.closing {
   animation: slideDown var(--transition-base);
 }
 
@@ -63,6 +65,30 @@
     transform: translateY(50px); 
     opacity: 0; 
   }
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+.modal-form .info-display,
+.modal-form .location-display {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--color-background-alt);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 }
 
 /* Modal Sizes */

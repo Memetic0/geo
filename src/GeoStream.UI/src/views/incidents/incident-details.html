@@ -42,19 +42,19 @@
           </div>
           
           <div class="header-actions">
-            <button if.bind="canValidate()" click.trigger="validateIncident()" class="btn-action btn-validate">
-              ✓ Validate
-            </button>
-            <button if.bind="canValidate() && !incident.assignedResponderId" click.trigger="assignResponder()" class="btn-action btn-assign">
+            <button if.bind="canAssignResponder" click.trigger="assignResponder()" class="btn-action btn-assign">
               👤 Assign Responder
             </button>
-            <button if.bind="canBeginMitigation()" click.trigger="beginMitigation()" class="btn-action btn-mitigate">
+            <button if.bind="canValidate" click.trigger="validateIncident()" class="btn-action btn-validate">
+              ✅ Validate Incident
+            </button>
+            <button if.bind="canBeginMitigation" click.trigger="beginMitigation()" class="btn-action btn-mitigate">
               🚧 Begin Mitigation
             </button>
-            <button if.bind="canBeginMonitoring()" click.trigger="beginMonitoring()" class="btn-action btn-monitor">
+            <button if.bind="canBeginMonitoring" click.trigger="beginMonitoring()" class="btn-action btn-monitor">
               👁️ Begin Monitoring
             </button>
-            <button if.bind="canResolve()" click.trigger="resolveIncident()" class="btn-action btn-resolve">
+            <button if.bind="canResolve" click.trigger="resolveIncident()" class="btn-action btn-resolve">
               ✅ Resolve
             </button>
           </div>
@@ -208,4 +208,37 @@
       </div>
     </div>
   </section>
+
+  <div if.bind="showAssignModal" class="modal-overlay" click.trigger="closeAssignModal()">
+    <div class="modal-content" click.trigger="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>👤 Assign Responder</h2>
+        <button type="button" click.trigger="closeAssignModal()" class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-form">
+        <div class="form-group">
+          <label class="form-label">Incident ID</label>
+          <div class="info-display">${incident?.id}</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="detail-responder-select">Select Responder</label>
+          <select id="detail-responder-select" value.bind="selectedResponderId" class="form-select">
+            <option repeat.for="responder of availableResponders" value.bind="responder">${responder}</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" click.trigger="closeAssignModal()" class="btn-secondary">Cancel</button>
+          <button type="button" click.trigger="confirmAssignResponder()" class="btn-primary">Assign Responder</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

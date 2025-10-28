@@ -230,8 +230,8 @@ public sealed class IncidentSimulatorService : BackgroundService
                 return;
             }
 
-            // Progress based on current state
-            var (action, responderId) = DetermineNextAction(summary.State.ToString());
+            // Progress based on current state and responder assignment
+            var (action, responderId) = DetermineNextAction(summary);
 
             if (action == null)
             {
@@ -267,18 +267,27 @@ public sealed class IncidentSimulatorService : BackgroundService
     }
 
     private (IncidentAdvanceAction? action, string? responderId) DetermineNextAction(
-        string currentState
+        IncidentSummaryDto summary
     )
     {
-        return currentState.ToLowerInvariant() switch
+        var currentState = summary.State.ToString().ToLowerInvariant();
+        var assignedResponder = summary.AssignedResponderId;
+
+        return currentState switch
         {
-            "detected" => (
-                IncidentAdvanceAction.BeginMitigation,
-                ResponderIds[_random.Next(ResponderIds.Length)]
+            "detected" => string.IsNullOrWhiteSpace(assignedResponder)
+                ? (
+                    IncidentAdvanceAction.AssignResponder,
+                    ResponderIds[_random.Next(ResponderIds.Length)]
+                )
+                : (IncidentAdvanceAction.Validate, null),
+            "acknowledged" => (
+                IncidentAdvanceAction.Validate,
+                null
             ),
             "validated" => (
                 IncidentAdvanceAction.BeginMitigation,
-                null
+                assignedResponder ?? ResponderIds[_random.Next(ResponderIds.Length)]
             ),
             "mitigating" => (IncidentAdvanceAction.BeginMonitoring, null),
             "monitoring" =>

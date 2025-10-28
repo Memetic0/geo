@@ -63,14 +63,14 @@ public class IncidentTests
     }
 
     [Fact]
-    public void AssignResponder_ShouldAutoValidateIfDetected()
+    public void AssignResponder_ShouldMoveIncidentToAcknowledgedState()
     {
         var incident = Incident.Raise(IncidentType.StreetFlooding, new GeoPoint(51.5, -0.1), IncidentSeverity.Moderate, "sensor-123");
         incident.DrainEvents();
 
         incident.AssignResponder("responder-456");
 
-        incident.State.Should().Be(IncidentState.Validated);
+        incident.State.Should().Be(IncidentState.Acknowledged);
         incident.AssignedResponderId.Should().Be("responder-456");
     }
 

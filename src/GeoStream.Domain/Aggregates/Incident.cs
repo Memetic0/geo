@@ -9,6 +9,7 @@ namespace GeoStream.Domain.Aggregates;
 public enum IncidentState
 {
     Detected,
+    Acknowledged,
     Validated,
     Mitigating,
     Monitoring,
@@ -17,6 +18,7 @@ public enum IncidentState
 
 public enum IncidentTrigger
 {
+    Acknowledge,
     Validate,
     BeginMitigation,
     BeginMonitoring,
@@ -122,12 +124,30 @@ public sealed class Incident
 
     public void Validate()
     {
+        if (State == IncidentState.Validated)
+        {
+            return;
+        }
+
+        if (State != IncidentState.Detected && State != IncidentState.Acknowledged)
+        {
+            throw new InvalidOperationException(
+                $"Cannot validate incident when in {State} state."
+            );
+        }
+
         MoveTo(IncidentTrigger.Validate);
     }
 
     public void BeginMitigation(string responderId)
     {
         AssignResponder(responderId);
+
+        if (State == IncidentState.Detected || State == IncidentState.Acknowledged)
+        {
+            Validate();
+        }
+
         MoveTo(IncidentTrigger.BeginMitigation);
     }
 
@@ -163,23 +183,29 @@ public sealed class Incident
             throw new ArgumentException("Responder id is required.", nameof(responderId));
         }
 
-        // Auto-validate if in Detected state
-        if (State == IncidentState.Detected)
-        {
-            Validate();
-        }
+        var shouldAcknowledge = State == IncidentState.Detected;
 
         if (AssignedResponderId == responderId)
         {
+            if (shouldAcknowledge)
+            {
+                MoveTo(IncidentTrigger.Acknowledge);
+            }
+
             return;
         }
 
         Append(new ResponderAssigned(Id, responderId, DateTimeOffset.UtcNow));
+
+        if (shouldAcknowledge)
+        {
+            MoveTo(IncidentTrigger.Acknowledge);
+        }
     }
 
     public void StartMitigation()
     {
-        if (State == IncidentState.Detected)
+        if (State == IncidentState.Detected || State == IncidentState.Acknowledged)
         {
             Validate();
         }
@@ -309,6 +335,11 @@ public sealed class Incident
 
         machine
             .Configure(IncidentState.Detected)
+            .Permit(IncidentTrigger.Acknowledge, IncidentState.Acknowledged)
+            .Permit(IncidentTrigger.Validate, IncidentState.Validated);
+
+        machine
+            .Configure(IncidentState.Acknowledged)
             .Permit(IncidentTrigger.Validate, IncidentState.Validated);
 
         machine

@@ -36,6 +36,9 @@ export class IncidentDetails implements ICustomElementViewModel {
   public activeTab: 'overview' | 'timeline' | 'map' = 'overview';
   public loading = true;
   public error?: string;
+  public showAssignModal = false;
+  public selectedResponderId = 'RESP-001';
+  public availableResponders = ['RESP-001', 'RESP-002', 'RESP-003', 'RESP-004', 'RESP-005'];
   
   private connection?: HubConnection;
   private map?: L.Map;
@@ -107,10 +110,16 @@ export class IncidentDetails implements ICustomElementViewModel {
 
     this.connection.on('incidentUpdated', (summary: any) => {
       if (summary.id === this.incident?.id) {
+        // Reassign to trigger Aurelia reactivity
         this.incident = {
-          ...summary,
+          id: summary.id,
           state: typeof summary.state === 'number' ? this.getStateName(summary.state) : summary.state,
-          severity: typeof summary.severity === 'number' ? this.getSeverityName(summary.severity) : summary.severity
+          severity: typeof summary.severity === 'number' ? this.getSeverityName(summary.severity) : summary.severity,
+          latitude: summary.latitude,
+          longitude: summary.longitude,
+          sensorStationId: summary.sensorStationId,
+          assignedResponderId: summary.assignedResponderId,
+          raisedAt: summary.raisedAt
         };
         
         // Reload history to get new events
@@ -329,6 +338,7 @@ export class IncidentDetails implements ICustomElementViewModel {
   public getStateColor(state: string): string {
     switch (state) {
       case 'Detected': return '#f59e0b';
+      case 'Acknowledged': return '#6366f1';
       case 'Validated': return '#3b82f6';
       case 'Mitigating': return '#8b5cf6';
       case 'Monitoring': return '#06b6d4';
@@ -348,7 +358,7 @@ export class IncidentDetails implements ICustomElementViewModel {
   }
 
   private getStateName(stateValue: number): string {
-    const states = ['Detected', 'Validated', 'Mitigating', 'Monitoring', 'Resolved'];
+    const states = ['Detected', 'Acknowledged', 'Validated', 'Mitigating', 'Monitoring', 'Resolved'];
     return states[stateValue] ?? 'Unknown';
   }
 
@@ -357,18 +367,31 @@ export class IncidentDetails implements ICustomElementViewModel {
     return severities[severityValue] ?? 'Unknown';
   }
 
+  public assignResponder(): void {
+    const currentResponder = this.incident?.assignedResponderId;
+    this.selectedResponderId = currentResponder ?? this.availableResponders[0];
+    this.showAssignModal = true;
+  }
+
+  public closeAssignModal(): void {
+    this.showAssignModal = false;
+  }
+
+  public async confirmAssignResponder(): Promise<void> {
+    if (!this.incident) return;
+    const succeeded = await this.advanceIncident('AssignResponder', this.selectedResponderId);
+    if (succeeded) {
+      this.showAssignModal = false;
+    }
+  }
+
   public async validateIncident(): Promise<void> {
     await this.advanceIncident('Validate', null);
   }
 
-  public async assignResponder(): Promise<void> {
-    const responderId = prompt('Enter Responder ID (e.g., RESP-001):');
-    if (!responderId) return;
-    await this.advanceIncident('Validate', responderId);
-  }
-
   public async beginMitigation(): Promise<void> {
-    await this.advanceIncident('BeginMitigation', null);
+    // Pass the assigned responder ID when beginning mitigation
+    await this.advanceIncident('BeginMitigation', this.incident?.assignedResponderId ?? null);
   }
 
   public async beginMonitoring(): Promise<void> {
@@ -379,8 +402,8 @@ export class IncidentDetails implements ICustomElementViewModel {
     await this.advanceIncident('Resolve', null);
   }
 
-  private async advanceIncident(action: string, responderId: string | null): Promise<void> {
-    if (!this.incident) return;
+  private async advanceIncident(action: string, responderId: string | null): Promise<boolean> {
+    if (!this.incident) return false;
     
     try {
       const response = await fetch(`/api/incidents/${this.incident.id}/advance`, {
@@ -402,25 +425,36 @@ export class IncidentDetails implements ICustomElementViewModel {
         this.loadIncident(incidentId),
         this.loadHistory(incidentId)
       ]);
+
+      return true;
     } catch (error) {
       console.error('Failed to advance incident', error);
       alert(`Failed to ${action} incident. Check console for details.`);
+      return false;
     }
   }
 
-  public canValidate(): boolean {
-    return this.incident?.state === 'Detected' && this.incident.assignedResponderId != null;
+  public get canAssignResponder(): boolean {
+    const state = this.incident?.state;
+    return (
+      (state === 'Detected' || state === 'Acknowledged') &&
+      !this.incident?.assignedResponderId
+    );
   }
 
-  public canBeginMitigation(): boolean {
-    return this.incident?.state === 'Validated' && this.incident.assignedResponderId != null;
+  public get canValidate(): boolean {
+    return this.incident?.state === 'Detected' || this.incident?.state === 'Acknowledged';
   }
 
-  public canBeginMonitoring(): boolean {
+  public get canBeginMitigation(): boolean {
+    return this.incident?.state === 'Validated';
+  }
+
+  public get canBeginMonitoring(): boolean {
     return this.incident?.state === 'Mitigating';
   }
 
-  public canResolve(): boolean {
+  public get canResolve(): boolean {
     return this.incident?.state === 'Monitoring';
   }
 }
