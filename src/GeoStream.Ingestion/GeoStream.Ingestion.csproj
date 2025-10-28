@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <UserSecretsId>dotnet-GeoStream.Ingestion-6a64adbc-9fce-4895-bc77-a76de3429cd8</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cronos" Version="0.8.0" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.14.1" />
+    <PackageReference Include="MassTransit" Version="8.2.2" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.8.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeoStream.Application\GeoStream.Application.csproj" />
+    <ProjectReference Include="..\GeoStream.Infrastructure\GeoStream.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,170 @@
+<template>
+  <!-- Create Incident Modal -->
+  <div if.bind="showCreateModal" class="modal-overlay" click.trigger="closeCreateModal()">
+    <div class="modal-content" click.trigger="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>🚨 Create New Incident</h2>
+        <button type="button" click.trigger="closeCreateModal()" class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-form">
+        <div class="form-group">
+          <label for="incident-location">Location</label>
+          <div class="location-display">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>${newIncident.latitude.toFixed(6)}, ${newIncident.longitude.toFixed(6)}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="incident-type">Incident Type</label>
+          <select id="incident-type" value.bind="newIncident.type" class="form-select">
+            <option value="TrafficCongestion">Traffic Congestion</option>
+            <option value="RoadAccident">Road Accident</option>
+            <option value="RoadClosure">Road Closure</option>
+            <option value="VehicleBreakdown">Vehicle Breakdown</option>
+            <option value="Roadwork">Roadwork</option>
+            <option value="PublicTransportDelay">Public Transport Delay</option>
+            <option value="ParkingViolation">Parking Violation</option>
+            <option value="SignalMalfunction">Signal Malfunction</option>
+            <option value="PedestrianIncident">Pedestrian Incident</option>
+            <option value="StreetFlooding">Street Flooding</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="incident-severity">Severity</label>
+          <select id="incident-severity" value.bind="newIncident.severity" class="form-select">
+            <option value="Low">Low</option>
+            <option value="Moderate">Moderate</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="incident-sensor">Sensor Station</label>
+          <select id="incident-sensor" value.bind="newIncident.sensorStationId" class="form-select">
+            <option value="SENS-001">SENS-001</option>
+            <option value="SENS-002">SENS-002</option>
+            <option value="SENS-003">SENS-003</option>
+            <option value="SENS-004">SENS-004</option>
+            <option value="SENS-005">SENS-005</option>
+            <option value="SENS-006">SENS-006</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" click.trigger="closeCreateModal()" class="btn-secondary">
+            Cancel
+          </button>
+          <button type="button" click.trigger="createIncident()" class="btn-primary">
+            Create Incident
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Responder Modal -->
+  <div if.bind="showAssignModal" class="modal-overlay" click.trigger="closeAssignModal()">
+    <div class="modal-content" click.trigger="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>👤 Assign Responder</h2>
+        <button type="button" click.trigger="closeAssignModal()" class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-form">
+        <div class="form-group">
+          <label>Incident ID</label>
+          <div class="info-display">
+            ${assigningIncident?.id}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="responder-select">Select Responder</label>
+          <select id="responder-select" value.bind="selectedResponderId" class="form-select">
+            <option repeat.for="responder of availableResponders" value.bind="responder">
+              ${responder}
+            </option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" click.trigger="closeAssignModal()" class="btn-secondary">
+            Cancel
+          </button>
+          <button type="button" click.trigger="confirmAssignResponder()" class="btn-primary">
+            Assign & Validate
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Severity Modal -->
+  <div if.bind="showSeverityModal" class="modal-overlay" click.trigger="closeSeverityModal()">
+    <div class="modal-content" click.trigger="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>⚠️ Change Severity</h2>
+        <button type="button" click.trigger="closeSeverityModal()" class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-form">
+        <div class="form-group">
+          <label>Incident ID</label>
+          <div class="info-display">
+            ${changingSeverityIncident?.id}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Current Severity</label>
+          <div class="info-display">
+            <span class="incident-badge severity-${changingSeverityIncident?.severity?.toLowerCase()}">
+              ${changingSeverityIncident?.severity}
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="new-severity">New Severity</label>
+          <select id="new-severity" value.bind="newSeverity" class="form-select">
+            <option value="Low">Low</option>
+            <option value="Moderate">Moderate</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" click.trigger="closeSeverityModal()" class="btn-secondary">
+            Cancel
+          </button>
+          <button type="button" click.trigger="confirmChangeSeverity()" class="btn-primary">
+            Update Severity
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

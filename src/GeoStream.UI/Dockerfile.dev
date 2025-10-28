@@ -1,0 +1,20 @@
+# Development Dockerfile for hot reload
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY src/GeoStream.UI/package.json src/GeoStream.UI/package-lock.json* ./
+
+# Install dependencies
+RUN --mount=type=cache,target=/root/.npm \
+    npm install
+
+# Copy source files (will be overridden by volume mounts for live editing)
+COPY src/GeoStream.UI/ .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Run Vite dev server with host binding for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

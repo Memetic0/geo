@@ -1,0 +1,93 @@
+<template>
+  <!-- Search and Filter Bar -->
+  <div class="controls-bar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        value.bind="searchTerm" 
+        input.trigger="onSearchChange()"
+        placeholder="Search by ID, sensor, responder, state, or severity..."
+        class="search-input"
+      />
+      <button if.bind="searchTerm" click.trigger="clearSearch()" class="clear-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="filter-group">
+      <select value.bind="filterType" change.trigger="onFilterChange()" class="filter-select">
+        <option value="all">All Types</option>
+        <option value="traffic-congestion">Traffic Congestion</option>
+        <option value="road-accident">Road Accident</option>
+        <option value="road-closure">Road Closure</option>
+        <option value="vehicle-breakdown">Vehicle Breakdown</option>
+        <option value="roadwork">Roadwork</option>
+        <option value="public-transport-delay">Public Transport Delay</option>
+        <option value="parking-violation">Parking Violation</option>
+        <option value="signal-malfunction">Signal Malfunction</option>
+        <option value="pedestrian-incident">Pedestrian Incident</option>
+        <option value="street-flooding">Street Flooding</option>
+      </select>
+
+      <select value.bind="filterSeverity" change.trigger="onFilterChange()" class="filter-select">
+        <option value="all">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="moderate">Moderate</option>
+        <option value="low">Low</option>
+      </select>
+
+      <select value.bind="filterState" change.trigger="onFilterChange()" class="filter-select">
+        <option value="all">All States</option>
+        <option value="detected">Detected</option>
+        <option value="validated">Validated</option>
+        <option value="mitigating">Mitigating</option>
+        <option value="monitoring">Monitoring</option>
+        <option value="resolved">Resolved</option>
+      </select>
+    </div>
+
+    <div class="sort-buttons">
+      <button 
+        click.trigger="setSortBy('date')" 
+        class="sort-btn ${sortBy === 'date' ? 'active' : ''}"
+        title="Sort by date">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Date
+        <span if.bind="sortBy === 'date'" class="sort-direction">${sortDirection === 'asc' ? '↑' : '↓'}</span>
+      </button>
+      <button 
+        click.trigger="setSortBy('severity')" 
+        class="sort-btn ${sortBy === 'severity' ? 'active' : ''}"
+        title="Sort by severity">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        </svg>
+        Severity
+        <span if.bind="sortBy === 'severity'" class="sort-direction">${sortDirection === 'asc' ? '↑' : '↓'}</span>
+      </button>
+      <button 
+        click.trigger="setSortBy('state')" 
+        class="sort-btn ${sortBy === 'state' ? 'active' : ''}"
+        title="Sort by state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        State
+        <span if.bind="sortBy === 'state'" class="sort-direction">${sortDirection === 'asc' ? '↑' : '↓'}</span>
+      </button>
+    </div>
+  </div>
+</template>

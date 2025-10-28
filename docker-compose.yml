@@ -1,0 +1,186 @@
+services:
+  # SQL Server - Event Store
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: geostream-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Strong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Strong!Passw0rd' -C -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    networks:
+      - geostream
+
+  # PostgreSQL with PostGIS - Read Model
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: geostream-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=geostream_read
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geostream
+
+  # Redis - Cache
+  redis:
+    image: redis:7-alpine
+    container_name: geostream-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - geostream
+
+  # Elasticsearch - Search & Analytics
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: geostream-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: curl -f http://localhost:9200/_cluster/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - geostream
+
+  # Kibana - Elasticsearch UI
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: geostream-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:5601/api/status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - geostream
+
+  # RabbitMQ - Message Bus
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: geostream-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geostream
+
+  # GeoStream API
+  api:
+    build:
+      context: .
+      dockerfile: src/GeoStream.Api/Dockerfile
+    container_name: geostream-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__EventStore=Server=sqlserver,1433;Database=GeoStreamEvents;User Id=sa;Password=Strong!Passw0rd;Encrypt=False;TrustServerCertificate=True
+      - ConnectionStrings__ReadModel=Host=postgres;Port=5432;Database=geostream_read;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672/
+      - Elasticsearch__Uri=http://elasticsearch:9200
+      - Cors__AllowedOrigins__0=http://localhost:5173
+    ports:
+      - "5000:5000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - geostream
+    restart: unless-stopped
+
+  # GeoStream UI (Development Mode)
+  ui:
+    build:
+      context: .
+      dockerfile: src/GeoStream.UI/Dockerfile.dev
+    container_name: geostream-ui
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src/GeoStream.UI/src:/app/src:ro
+      - ./src/GeoStream.UI/index.html:/app/index.html:ro
+      - ./src/GeoStream.UI/vite.config.ts:/app/vite.config.ts:ro
+      - ./src/GeoStream.UI/tsconfig.json:/app/tsconfig.json:ro
+    depends_on:
+      - api
+    networks:
+      - geostream
+    restart: unless-stopped
+
+networks:
+  geostream:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  postgres-data:
+  redis-data:
+  elasticsearch-data:
+  rabbitmq-data:

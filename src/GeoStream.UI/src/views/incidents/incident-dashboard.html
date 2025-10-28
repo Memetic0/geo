@@ -1,0 +1,144 @@
+<import from="../../components/incidents/incident-filters"></import>
+<import from="../../components/incidents/incident-map"></import>
+<import from="../../components/incidents/incident-table-rows"></import>
+<import from="../../components/incidents/incident-modals"></import>
+
+<template>
+  <section class="dashboard">
+    <header class="dashboard__header">
+      <div class="header-content">
+        <h1>🌊 Live Incident Monitor</h1>
+        <p class="header-subtitle">
+          <span class="pulse-dot"></span>
+          ${totalIncidents} live incident${totalIncidents !== 1 ? 's' : ''}
+          ${filteredCount !== totalIncidents ? ` • ${filteredCount} shown` : ''} • Real-time updates
+        </p>
+      </div>
+      <div class="header-actions">
+        <button type="button" click.trigger="resetZoom($event)" class="btn-reset-zoom" title="Reset map zoom">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+          </svg>
+          Reset Zoom
+        </button>
+        <button type="button" click.trigger="refresh()" class="btn-refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Search and Filter Bar -->
+    <incident-filters
+      search-term.two-way="searchTerm"
+      filter-type.two-way="filterType"
+      filter-severity.two-way="filterSeverity"
+      filter-state.two-way="filterState"
+      sort-by.two-way="sortBy"
+      sort-direction.two-way="sortDirection"
+      on-search-change.bind="onSearchChange"
+      on-filter-change.bind="onFilterChange"
+      set-sort-by.bind="setSortBy">
+    </incident-filters>
+
+    <!-- Main Content: Map and Table Side by Side -->
+    <div class="dashboard__content">
+      <incident-map
+        view-model.ref="mapComponent"
+        incidents.bind="filteredIncidents"
+        selected-incident-id.bind="selectedIncidentId"
+        hovered-incident-id.bind="hoveredIncidentId"
+        on-incident-click.bind="onRowClick"
+        on-map-click.bind="handleMapClick">
+      </incident-map>
+
+      <!-- Incidents Table on the Right -->
+      <div class="dashboard__table-container">
+        <div if.bind="!hasIncidents" class="dashboard__empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+            </svg>
+          </div>
+          <h2>${searchTerm || filterSeverity !== 'all' || filterState !== 'all' || filterType !== 'all' ? 'No Matching Incidents' : 'All Clear!'}</h2>
+          <p>${searchTerm || filterSeverity !== 'all' || filterState !== 'all' || filterType !== 'all' ? 'Try adjusting your filters or search terms' : 'No active incidents at this time'}</p>
+          <button if.bind="searchTerm || filterSeverity !== 'all' || filterState !== 'all' || filterType !== 'all'" 
+                  click.trigger="clearAllFilters()" 
+                  class="btn-primary">
+            Clear Filters
+          </button>
+        </div>
+
+        <div if.bind="hasIncidents" class="incidents-section">
+          <div class="section-header">
+            <h2>Active Incidents (${filteredCount})</h2>
+            <div class="legend">
+              <span class="legend-item"><span class="dot dot-critical"></span> Critical</span>
+              <span class="legend-item"><span class="dot dot-high"></span> High</span>
+              <span class="legend-item"><span class="dot dot-moderate"></span> Moderate</span>
+              <span class="legend-item"><span class="dot dot-low"></span> Low</span>
+            </div>
+          </div>
+
+          <!-- Scrollable Container -->
+          <div class="table-scroll-container">
+            <!-- Compact Table View -->
+            <div class="incidents-table">
+              <div class="incidents-table-header">
+                <div class="col-id">ID</div>
+                <div class="col-type">Type</div>
+                <div class="col-severity">Severity</div>
+                <div class="col-state">State</div>
+                <div class="col-location">Location</div>
+                <div class="col-sensor">Sensor</div>
+                <div class="col-responder">Responder</div>
+                <div class="col-time">Raised</div>
+                <div class="col-actions">Actions</div>
+              </div>
+
+              <div class="incidents-table-body">
+                <incident-table-rows
+                  incidents.bind="filteredIncidents"
+                  selected-incident-id.bind="selectedIncidentId"
+                  on-row-hover.bind="onRowHover"
+                  on-row-leave.bind="onRowLeave"
+                  on-row-click.bind="onRowClick"
+                  open-severity-modal.bind="openSeverityModal"
+                  validate.bind="validateIncident"
+                  assign.bind="assignResponder"
+                  mitigate.bind="beginMitigation"
+                  monitor.bind="beginMonitoring"
+                  resolve.bind="resolveIncident">
+                </incident-table-rows> 
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <incident-modals
+      show-create-modal.bind="showCreateModal"
+      new-incident.bind="newIncident"
+      on-create-incident.bind="createIncident"
+      on-close-create-modal.bind="closeCreateModal"
+      show-assign-modal.bind="showAssignModal"
+      assigning-incident.bind="assigningIncident"
+      selected-responder-id.bind="selectedResponderId"
+      available-responders.bind="availableResponders"
+      on-assign-responder.bind="confirmAssignResponder"
+      on-close-assign-modal.bind="closeAssignModal"
+      show-severity-modal.bind="showSeverityModal"
+      changing-severity-incident.bind="changingSeverityIncident"
+      new-severity.bind="newSeverity"
+      on-change-severity.bind="confirmChangeSeverity"
+      on-close-severity-modal.bind="closeSeverityModal">
+    </incident-modals>
+
+  </section>
+</template>

@@ -1,0 +1,104 @@
+<template>
+  <div repeat.for="incident of incidents" 
+       class="incident-row ${selectedIncidentId === incident.id ? 'selected' : ''}" 
+       data-severity.bind="incident.severity.toLowerCase()"
+       mouseenter.trigger="onRowHover(incident)"
+       mouseleave.trigger="onRowLeave()"
+       click.trigger="handleRowClick(incident, $event)">
+      <!-- State Progress Bar -->
+      <div class="row-progress">
+        <div class="row-progress-bar" css="width: ${getStateProgress(incident.state)}%"></div>
+      </div>
+
+      <div class="row-content">
+        <div class="col-id">
+          <a href="/incidents/${incident.id}" class="incident-link" title="${incident.id}">
+            ${incident.id.substring(0, 8)}...
+          </a>
+        </div>
+
+        <div class="col-type">
+          <span class="type-badge" title="${getIncidentTypeName(incident.type)}">
+            ${getTypeIcon(incident.type)}
+          </span>
+        </div>
+
+        <div class="col-severity">
+          <span class="incident-badge severity-${incident.severity.toLowerCase()}">
+            ${incident.severity}
+          </span>
+        </div>
+
+        <div class="col-state">
+          <span class="state-badge ${incident.state.toLowerCase()}">${incident.state}</span>
+        </div>
+
+        <div class="col-location">
+          <span class="mono-text">${incident.latitude.toFixed(2)}, ${incident.longitude.toFixed(2)}</span>
+        </div>
+
+        <div class="col-sensor">
+          <span class="sensor-badge">${incident.sensorStationId}</span>
+        </div>
+
+        <div class="col-responder">
+          <span if.bind="incident.assignedResponderId" class="responder-badge">
+            ${incident.assignedResponderId}
+          </span>
+          <span if.bind="!incident.assignedResponderId" class="text-muted">—</span>
+        </div>
+
+        <div class="col-time">
+          <span class="time-text" title="${incident.raisedAt}">
+            ${formatTimeAgo(incident.raisedAt)}
+          </span>
+        </div>
+
+        <div class="col-actions">
+          <div class="action-buttons">
+            <button if.bind="incident.state !== 'Resolved'" 
+                    click.trigger="openSeverityModal(incident)" 
+                    class="btn-action-compact btn-edit"
+                    title="Change severity">
+              ✏️
+            </button>
+            <button if.bind="incident.state === 'Detected' && !incident.assignedResponderId" 
+                    click.trigger="assign(incident)" 
+                    class="btn-action-compact btn-assign"
+                    title="Assign Responder">
+              👤
+            </button>
+            <button if.bind="canValidate(incident)" 
+                    click.trigger="validate(incident)" 
+                    class="btn-action-compact btn-validate"
+                    title="Validate">
+              ✓
+            </button>
+            <button if.bind="canBeginMitigation(incident)" 
+                    click.trigger="mitigate(incident)" 
+                    class="btn-action-compact btn-mitigate"
+                    title="Begin Mitigation">
+              🚧
+            </button>
+            <button if.bind="canBeginMonitoring(incident)" 
+                    click.trigger="monitor(incident)" 
+                    class="btn-action-compact btn-monitor"
+                    title="Begin Monitoring">
+              👁️
+            </button>
+            <button if.bind="canResolve(incident)" 
+                    click.trigger="resolve(incident)" 
+                    class="btn-action-compact btn-resolve"
+                    title="Resolve">
+              ✅
+            </button>
+            <a href="/incidents/${incident.id}" 
+               class="btn-action-compact btn-details"
+               title="View Details">
+              →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+</template>
