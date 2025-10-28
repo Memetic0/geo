@@ -50,6 +50,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
   public showSeverityModal = false;
   public changingSeverityIncident: IncidentSummary | null = null;
   public newSeverity = 'Moderate';
+  public isResetting = false;
 
   private connection?: HubConnection;
   public mapComponent?: IncidentMap;
@@ -206,7 +207,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     this.showCreateModal = true;
   }
 
-  public async createIncident(event?: Event): Promise<void> {
+  public createIncident = async (event?: Event): Promise<void> => {
     if (event) {
       event.stopPropagation();
     }
@@ -243,7 +244,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     }
   }
 
-  public closeCreateModal(): void {
+  public closeCreateModal = (): void => {
     this.showCreateModal = false;
     
     // Reset form
@@ -262,14 +263,14 @@ export class IncidentDashboard implements ICustomElementViewModel {
     this.showAssignModal = true;
   }
 
-  public async confirmAssignResponder(): Promise<void> {
+  public confirmAssignResponder = async (): Promise<void> => {
     if (!this.assigningIncident) return;
 
     await this.advanceIncident(this.assigningIncident.id, 'AssignResponder', this.selectedResponderId);
     this.closeAssignModal();
   }
 
-  public closeAssignModal(): void {
+  public closeAssignModal = (): void => {
     this.showAssignModal = false;
     this.assigningIncident = null;
     this.selectedResponderId = 'RESP-001';
@@ -281,7 +282,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     this.showSeverityModal = true;
   }
 
-  public async confirmChangeSeverity(): Promise<void> {
+  public confirmChangeSeverity = async (): Promise<void> => {
     if (!this.changingSeverityIncident) return;
 
     try {
@@ -305,7 +306,7 @@ export class IncidentDashboard implements ICustomElementViewModel {
     }
   }
 
-  public closeSeverityModal(): void {
+  public closeSeverityModal = (): void => {
     this.showSeverityModal = false;
     this.changingSeverityIncident = null;
     this.newSeverity = 'Moderate';
@@ -355,6 +356,29 @@ export class IncidentDashboard implements ICustomElementViewModel {
 
   public resolveIncident = async (incident: IncidentSummary): Promise<void> => {
     await this.advanceIncident(incident.id, 'Resolve', null);
+  }
+
+  public resetInfrastructure = async (): Promise<void> => {
+    if (this.isResetting) {
+      return;
+    }
+
+    this.isResetting = true;
+
+    try {
+      const response = await fetch('/api/system/reset', { method: 'POST' });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Reset failed (${response.status}): ${errorText}`);
+      }
+
+      await this.refresh();
+    } catch (error) {
+      console.error('Failed to reset infrastructure', error);
+      alert('Failed to reset infrastructure. Check console for details.');
+    } finally {
+      this.isResetting = false;
+    }
   }
 
   private async advanceIncident(incidentId: string, action: string, responderId: string | null): Promise<void> {
@@ -426,11 +450,22 @@ export class IncidentDashboard implements ICustomElementViewModel {
     if (this.filterState !== 'all' && incident.state.toLowerCase() !== this.filterState.toLowerCase()) {
       return true;
     }
-    if (this.filterType !== 'all' && incident.type.toLowerCase() !== this.filterType.toLowerCase()) {
+    if (this.filterType !== 'all' && !this.matchesTypeFilter(this.filterType, incident.type)) {
       return true;
     }
-    if (this.searchTerm && !incident.id.toLowerCase().includes(this.searchTerm.toLowerCase())) {
-      return true;
+
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      const matches =
+        incident.id.toLowerCase().includes(term) ||
+        incident.sensorStationId.toLowerCase().includes(term) ||
+        (incident.assignedResponderId?.toLowerCase().includes(term) ?? false) ||
+        incident.severity.toLowerCase().includes(term) ||
+        incident.state.toLowerCase().includes(term);
+
+      if (!matches) {
+        return true;
+      }
     }
     return false;
   }
@@ -456,5 +491,14 @@ export class IncidentDashboard implements ICustomElementViewModel {
       assignedResponderId: raw.assignedResponderId,
       raisedAt: raw.raisedAt
     };
+  }
+
+  private matchesTypeFilter(filterValue: string, incidentType: string): boolean {
+    if (filterValue === 'all') {
+      return true;
+    }
+
+    const normalizedFilter = this.normalizeFilterType(filterValue);
+    return incidentType.localeCompare(normalizedFilter, undefined, { sensitivity: 'accent' }) === 0;
   }
 }

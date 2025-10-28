@@ -14,7 +14,7 @@
   background: var(--color-background-alt);
   box-shadow: 0 1px 0 var(--color-border);
   display: grid;
-  grid-template-columns: 80px 40px 80px 100px 100px 70px 100px 80px 1fr;
+  grid-template-columns: 80px 60px 120px 120px 120px 110px 120px 80px 120px;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-sm);
@@ -84,7 +84,7 @@
 
 .row-content {
   display: grid;
-  grid-template-columns: 80px 40px 80px 100px 100px 70px 100px 80px 1fr;
+  grid-template-columns: 80px 60px 120px 120px 120px 110px 120px 120px 120px;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   align-items: center;

@@ -10,7 +10,7 @@ namespace GeoStream.Api.Services;
 /// Background service that simulates random incidents and automatically progresses them through
 /// the state machine at random intervals. Allows user interventions through the API.
 /// </summary>
-public sealed class IncidentSimulatorService : BackgroundService
+public sealed class IncidentSimulatorService : BackgroundService, IIncidentSimulatorControl
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<IncidentSimulatorService> _logger;
@@ -335,5 +335,22 @@ public sealed class IncidentSimulatorService : BackgroundService
         {
             _activeIncidentIds.Remove(incidentId);
         }
+    }
+
+    public Task ResetAsync(CancellationToken cancellationToken = default)
+    {
+        int cleared;
+        lock (_lock)
+        {
+            cleared = _activeIncidentIds.Count;
+            _activeIncidentIds.Clear();
+        }
+
+        _logger.LogInformation(
+            "🔄 Incident simulator reset requested - cleared {Count} tracked incidents",
+            cleared
+        );
+
+        return Task.CompletedTask;
     }
 }

@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,7 +92,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMediatR(typeof(RaiseIncidentCommand).Assembly);
 builder.Services.AddGeoStreamInfrastructure(builder.Configuration);
-builder.Services.AddHostedService<IncidentSimulatorService>();
+builder.Services.AddSingleton<IncidentSimulatorService>();
+builder.Services.AddSingleton<IIncidentSimulatorControl>(
+    sp => sp.GetRequiredService<IncidentSimulatorService>()
+);
+builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<IncidentSimulatorService>());
+builder.Services.AddSingleton<SystemResetService>();
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -111,6 +117,7 @@ app.UseAuthorization();
 app.UseCors("spa");
 
 app.MapIncidentEndpoints();
+app.MapSystemEndpoints();
 app.MapHealthChecks(
     "/health",
     new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

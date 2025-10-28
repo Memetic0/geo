@@ -15,6 +15,17 @@
         </p>
       </div>
       <div class="header-actions">
+        <button type="button"
+                click.trigger="resetInfrastructure()"
+                disabled.bind="isResetting"
+                class="btn-reset-system ${isResetting ? 'is-loading' : ''}"
+                title="Clear the read model and search index, and restart the simulator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 10l1.5 1.5a8 8 0 1 0 1.9-5.3"/>
+            <polyline points="3 4 3 10 9 10"/>
+          </svg>
+          Reset Data
+        </button>
         <button type="button" click.trigger="resetZoom($event)" class="btn-reset-zoom" title="Reset map zoom">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>

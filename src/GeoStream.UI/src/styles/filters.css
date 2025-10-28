@@ -15,9 +15,9 @@
 }
 
 .search-box {
-  flex: 1;
-  min-width: 400px;
-  max-width: 600px;
+  flex: 4 1 420px;
+  min-width: 420px;
+  max-width: 100%;
   position: relative;
   display: flex;
   align-items: center;
@@ -298,6 +298,12 @@
   .filter-group {
     width: 100%;
     min-width: 0;
+  }
+
+  .search-box {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .sort-controls {
